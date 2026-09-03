@@ -1,0 +1,423 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Organization
+// ---------------------------------------------------------------------------
+
+model Organization {
+  id        String   @id @default(cuid())
+  clerkOrgId String? @unique @map("clerk_org_id")
+  name      String
+  slug      String   @unique
+
+  // Razorpay credentials — encrypted at rest in production (Phase 1)
+  razorpayKeyId     String? @map("razorpay_key_id")
+  razorpayKeySecret String? @map("razorpay_key_secret")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  payments    Payment[]
+  orders      Order[]
+  settlements Settlement[]
+  cases       Case[]
+  agentRuns   AgentRun[]
+  reconciliationRuns ReconciliationRun[]
+  reconciliationFindings ReconciliationFinding[]
+  webhookEvents WebhookEvent[]
+
+  @@map("organizations")
+}
+
+// ---------------------------------------------------------------------------
+// Payments
+// ---------------------------------------------------------------------------
+
+enum PaymentStatus {
+  CREATED
+  AUTHORIZED
+  CAPTURED
+  REFUNDED
+  FAILED
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  organizationId    String        @map("organization_id")
+  razorpayPaymentId String        @unique @map("razorpay_payment_id")
+  razorpayOrderId   String?       @map("razorpay_order_id")
+  razorpaySettlementId String?    @map("razorpay_settlement_id")
+  orderId           String?       @map("order_id")
+  amount            Int // paise
+  currency          String        @default("INR")
+  status            PaymentStatus
+  method            String?
+  email             String?
+  contact           String?
+  retryCount        Int           @default(0) @map("retry_count")
+  failureCode       String?       @map("failure_code")
+  failureDescription String?      @map("failure_description")
+  lastFailedAt      DateTime?     @map("last_failed_at")
+  capturedAt        DateTime?     @map("captured_at")
+  metadata          Json?
+  syncedAt          DateTime      @default(now()) @map("synced_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  order        Order?       @relation(fields: [orderId], references: [id])
+  cases        Case[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([razorpayOrderId])
+  @@index([razorpaySettlementId])
+  @@map("payments")
+}
+
+// ---------------------------------------------------------------------------
+// Orders
+// ---------------------------------------------------------------------------
+
+model Order {
+  id              String @id @default(cuid())
+  organizationId  String @map("organization_id")
+  razorpayOrderId String @unique @map("razorpay_order_id")
+  externalOrderId String? @map("external_order_id")
+  amount          Int
+  amountPaid      Int    @default(0) @map("amount_paid")
+  currency        String @default("INR")
+  status          String
+  receipt         String?
+  metadata        Json?
+  syncedAt        DateTime @default(now()) @map("synced_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  payments     Payment[]
+  cases        Case[]
+
+  @@index([organizationId])
+  @@index([externalOrderId])
+  @@map("orders")
+}
+
+// ---------------------------------------------------------------------------
+// Settlements
+// ---------------------------------------------------------------------------
+
+model Settlement {
+  id                   String    @id @default(cuid())
+  organizationId       String    @map("organization_id")
+  razorpaySettlementId String    @unique @map("razorpay_settlement_id")
+  amount               Int
+  fees                 Int       @default(0)
+  tax                  Int       @default(0)
+  status               String
+  utr                  String?
+  settledAt            DateTime? @map("settled_at")
+  metadata             Json?
+  syncedAt             DateTime  @default(now()) @map("synced_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("settlements")
+}
+
+// ---------------------------------------------------------------------------
+// Cases (reconciliation anomalies)
+// ---------------------------------------------------------------------------
+
+enum CaseType {
+  AMOUNT_MISMATCH
+  MISSING_SETTLEMENT
+  DUPLICATE_PAYMENT
+  FAILED_PAYMENT
+  UNMATCHED_ORDER
+  DATE_MISMATCH
+  STATUS_MISMATCH
+  OTHER
+}
+
+enum CaseSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CaseStatus {
+  OPEN
+  ANALYZING
+  ACTION_PROPOSED
+  APPROVED
+  EXECUTING
+  RECOVERED
+  FAILED
+  ESCALATED
+  CLOSED
+  INVESTIGATING
+  PENDING_APPROVAL
+  RESOLVED
+  DISMISSED
+}
+
+enum CaseSource {
+  RECONCILIATION
+  PAYMENT_FAILURE
+  WEBHOOK
+}
+
+model Case {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id")
+  caseNumber     Int          @map("case_number")
+  type           CaseType
+  severity       CaseSeverity
+  status         CaseStatus   @default(OPEN)
+  source         CaseSource   @default(RECONCILIATION)
+  title          String
+  description    String?
+  orderId        String?      @map("order_id")
+  paymentId      String?      @map("payment_id")
+  paymentIds     String[]     @map("payment_ids")
+  findingId      String?      @unique @map("finding_id")
+  amountAtRisk   Int?         @map("amount_at_risk")
+  currency       String?      @default("INR")
+  expectedValue  String?      @map("expected_value")
+  actualValue    String?      @map("actual_value")
+  difference     String?
+  evidence       Json?
+  analysis       Json?
+  recommendation Json?
+  policyDecision Json?        @map("policy_decision")
+  executionResult Json?       @map("execution_result")
+  resolution     Json?
+  requiresHumanApproval Boolean @default(false) @map("requires_human_approval")
+  stoppingReason String?      @map("stopping_reason")
+  synthetic      Boolean      @default(false)
+  lastAnalyzedAt DateTime?    @map("last_analyzed_at")
+  lastExecutedAt DateTime?    @map("last_executed_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  resolvedAt     DateTime?    @map("resolved_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  order        Order?       @relation(fields: [orderId], references: [id])
+  payment      Payment?     @relation(fields: [paymentId], references: [id])
+  finding      ReconciliationFinding? @relation(fields: [findingId], references: [id])
+  agentRuns    AgentRun[]
+
+  @@unique([organizationId, caseNumber])
+  @@unique([organizationId, paymentId], map: "cases_organization_id_payment_id_key")
+  @@index([organizationId, status])
+  @@index([organizationId, source])
+  @@index([severity])
+  @@map("cases")
+}
+
+// ---------------------------------------------------------------------------
+// Agent runs & audit trail
+// ---------------------------------------------------------------------------
+
+enum AgentRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AgentType {
+  ORCHESTRATOR
+  RECONCILIATION
+  INVESTIGATION
+  RESOLUTION
+  EXPLAINABILITY
+}
+
+model AgentRun {
+  id             String         @id @default(cuid())
+  organizationId String         @map("organization_id")
+  caseId         String?        @map("case_id")
+  agentType      AgentType      @map("agent_type")
+  status         AgentRunStatus @default(PENDING)
+  input          Json?
+  output         Json?
+  error          String?
+  startedAt      DateTime?      @map("started_at")
+  completedAt    DateTime?      @map("completed_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  case            Case?            @relation(fields: [caseId], references: [id])
+  steps           AgentStep[]
+  toolInvocations ToolInvocation[]
+
+  @@index([organizationId])
+  @@index([caseId])
+  @@index([status])
+  @@map("agent_runs")
+}
+
+model AgentStep {
+  id         String   @id @default(cuid())
+  agentRunId String   @map("agent_run_id")
+  stepNumber Int      @map("step_number")
+  stepType   String   @map("step_type")
+  content    String?
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  agentRun        AgentRun         @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+  toolInvocations ToolInvocation[]
+
+  @@unique([agentRunId, stepNumber])
+  @@index([agentRunId])
+  @@map("agent_steps")
+}
+
+model ToolInvocation {
+  id          String   @id @default(cuid())
+  agentRunId  String   @map("agent_run_id")
+  agentStepId String?  @map("agent_step_id")
+  toolName    String   @map("tool_name")
+  input       Json
+  output      Json?
+  error       String?
+  durationMs  Int?     @map("duration_ms")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  agentRun  AgentRun   @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+  agentStep AgentStep? @relation(fields: [agentStepId], references: [id])
+
+  @@index([agentRunId])
+  @@index([toolName])
+  @@map("tool_invocations")
+}
+
+model WebhookEvent {
+  id              String   @id @default(cuid())
+  organizationId  String   @map("organization_id")
+  provider        String
+  providerEventId String   @map("provider_event_id")
+  eventType       String   @map("event_type")
+  status          String
+  payload         Json?
+  receivedAt      DateTime @default(now()) @map("received_at")
+  processedAt     DateTime? @map("processed_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerEventId])
+  @@index([organizationId, eventType])
+  @@map("webhook_events")
+}
+
+// ---------------------------------------------------------------------------
+// Reconciliation runs & findings
+// ---------------------------------------------------------------------------
+
+enum FindingType {
+  EXACT_MATCH
+  AMOUNT_MISMATCH
+  MISSING_SETTLEMENT
+  DUPLICATE_PAYMENT
+  UNMATCHED_ORDER
+  DATE_MISMATCH
+  STATUS_MISMATCH
+}
+
+enum FindingSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FindingStatus {
+  OPEN
+  RESOLVED
+  CONVERTED_TO_CASE
+}
+
+enum ReconciliationRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model ReconciliationRun {
+  id                String                  @id @default(cuid())
+  organizationId    String                  @map("organization_id")
+  datasetId         String                  @map("dataset_id")
+  datasetVersion    String                  @map("dataset_version")
+  datasetLabel      String                  @map("dataset_label")
+  seed              Int
+  status            ReconciliationRunStatus @default(PENDING)
+  startedAt         DateTime                @map("started_at")
+  completedAt       DateTime?               @map("completed_at")
+  totalRecords      Int                     @map("total_records")
+  matchedRecords    Int                     @map("matched_records")
+  mismatchedRecords Int                     @map("mismatched_records")
+  unmatchedRecords  Int                     @map("unmatched_records")
+  exceptionCount    Int                     @map("exception_count")
+  matchRate         Decimal                 @map("match_rate") @db.Decimal(6, 3)
+  processingTimeMs  Int                     @map("processing_time_ms")
+  error             String?
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  findings     ReconciliationFinding[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("reconciliation_runs")
+}
+
+model ReconciliationFinding {
+  id             String          @id @default(cuid())
+  runId          String          @map("run_id")
+  organizationId String          @map("organization_id")
+  findingKey     String          @map("finding_key")
+  type           FindingType
+  severity       FindingSeverity
+  status         FindingStatus   @default(OPEN)
+  recordIds      String[]        @map("record_ids")
+  orderRef       String?         @map("order_ref")
+  paymentRef     String?         @map("payment_ref")
+  settlementRef  String?         @map("settlement_ref")
+  expectedValue  String?         @map("expected_value")
+  actualValue    String?         @map("actual_value")
+  difference     String?
+  explanation    String
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  run          ReconciliationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  case         Case?
+
+  @@unique([runId, findingKey])
+  @@index([runId])
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+  @@map("reconciliation_findings")
+}
