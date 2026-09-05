@@ -48,7 +48,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
-        <Link href="/dashboard" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3" aria-label="Back to SettleIQ home" title="Back to SettleIQ home">
           <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Shield className="size-4" />
           </div>

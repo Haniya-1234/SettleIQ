@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
-  ArrowLeft,
   CheckCircle2,
   Clock,
   Database,
@@ -171,8 +170,7 @@ export default async function CaseDetailPage({
         {/* Navigation & Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Button variant="ghost" size="sm" className="w-fit text-xs gap-1.5 text-muted-foreground hover:text-foreground" render={<Link href="/cases" />}>
-            <ArrowLeft className="size-3.5" />
-            Back to Cases
+            ← Back to Cases
           </Button>
 
           <div className="flex items-center gap-2">
