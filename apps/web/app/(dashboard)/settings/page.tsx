@@ -41,16 +41,18 @@ export default function SettingsPage() {
     {
       name: "AI Engine",
       description: "AI-powered payment diagnosis and recovery recommendations.",
-      supportingText: "Provides autonomous resolutions and recommendations.",
+      supportingText: "Provides autonomous resolutions and recommendations (Running via Local Sandbox Engine).",
       icon: Sparkles,
-      configured: !!process.env.OPENAI_API_KEY,
+      configured: true,
+      statusText: "Local Sandbox",
     },
     {
       name: "Authentication",
       description: "Secure access to the SettleIQ workspace.",
-      supportingText: "Manages users, sessions, and role-based access.",
+      supportingText: "Workspace currently running in open access mode for demo purposes.",
       icon: ShieldCheck,
-      configured: !!(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY),
+      configured: true,
+      statusText: "Open Access",
     }
   ];
 
@@ -119,7 +121,7 @@ export default function SettingsPage() {
                           ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" 
                           : "border-muted-foreground/30 text-muted-foreground"
                       }`}>
-                        {integration.configured ? "Connected" : "Not Configured"}
+                        {("statusText" in integration && integration.statusText) ? integration.statusText : (integration.configured ? "Connected" : "Not Configured")}
                       </Badge>
                     </div>
                     
