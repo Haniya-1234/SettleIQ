@@ -14,8 +14,8 @@ export default async function CasesPage() {
 
   return (
     <DashboardShell
-      title="Cases"
-      description="Revenue recovery and reconciliation investigation queue"
+      title="Recovery Cases"
+      description="Monitor revenue at risk, AI decisions, and recovery outcomes."
     >
       <CasesWorkspace initialCases={cases} />
     </DashboardShell>

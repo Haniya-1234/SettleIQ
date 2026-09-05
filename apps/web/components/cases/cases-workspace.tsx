@@ -37,6 +37,7 @@ export interface CaseRecord {
   difference: string | null;
   paymentIds: string[];
   createdAt: string | Date;
+  updatedAt?: string | Date;
   payment?: {
     razorpayPaymentId: string;
     amount: number;
@@ -44,6 +45,7 @@ export interface CaseRecord {
     status: string;
   } | null;
   finding?: { id: string; type: string; runId: string } | null;
+  recommendation?: unknown;
 }
 
 interface CasesWorkspaceProps {
@@ -105,39 +107,25 @@ function getStatusBadge(status: string) {
   }
 }
 
-function getSeverityBadge(severity: string) {
-  switch (severity.toUpperCase()) {
-    case "CRITICAL":
-      return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400">
-          <span className="size-1.5 rounded-full bg-red-500 animate-pulse" />
-          CRITICAL
-        </span>
-      );
-    case "HIGH":
-      return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
-          <span className="size-1.5 rounded-full bg-amber-500" />
-          HIGH
-        </span>
-      );
-    case "MEDIUM":
-      return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-yellow-600 dark:text-yellow-400">
-          <span className="size-1.5 rounded-full bg-yellow-500" />
-          MEDIUM
-        </span>
-      );
-    case "LOW":
-      return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-muted-foreground/40" />
-          LOW
-        </span>
-      );
-    default:
-      return <span className="text-xs text-muted-foreground">{severity}</span>;
-  }
+
+
+function formatFailureReason(type: string): string {
+  if (!type) return "Unknown";
+  return type
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
+}
+
+function getAiRecommendation(rec: unknown): { label: string; confidence: number | null } {
+  if (!rec || typeof rec !== "object") return { label: "Pending analysis", confidence: null };
+  const r = rec as Record<string, unknown>;
+  const recommendedIntervention = r.recommendedIntervention as Record<string, unknown> | undefined;
+  const action = (recommendedIntervention?.type || r.interventionType) as string | undefined;
+  const label = action ? formatFailureReason(action) : "No action proposed";
+  const confidenceValue = r.confidence;
+  const confidence = typeof confidenceValue === "number" ? confidenceValue : null;
+  return { label, confidence };
 }
 
 export function CasesWorkspace({ initialCases }: CasesWorkspaceProps) {
@@ -162,24 +150,32 @@ export function CasesWorkspace({ initialCases }: CasesWorkspaceProps) {
     0,
   );
 
+  const openCases = initialCases.filter((c) => c.status === "OPEN").length;
+  const pendingApproval = initialCases.filter((c) => c.status === "PENDING_APPROVAL" || c.status === "ACTION_PROPOSED").length;
+  
+  const revenueRecovered = initialCases
+    .filter((c) => c.status === "RECOVERED" || c.status === "RESOLVED" || c.status === "CLOSED")
+    .reduce((sum, c) => sum + (c.amountAtRisk ?? c.payment?.amount ?? 0), 0);
+
   return (
     <div className="flex flex-col gap-6">
       {/* Overview Stat Ribbon */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Total Cases</p>
-          <p className="text-2xl font-extrabold text-foreground tabular-nums">{initialCases.length}</p>
-        </div>
-        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Total Exposure</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Revenue at Risk</p>
           <p className="text-2xl font-extrabold text-foreground tabular-nums">{formatCurrency(totalAmountAtRisk)}</p>
         </div>
         <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Queue Status</p>
-          <p className="text-sm font-semibold text-foreground mt-1 flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-emerald-500" />
-            Active Investigation Queue
-          </p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Open Cases</p>
+          <p className="text-2xl font-extrabold text-foreground tabular-nums">{openCases}</p>
+        </div>
+        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Pending Approval</p>
+          <p className="text-2xl font-extrabold text-foreground tabular-nums">{pendingApproval}</p>
+        </div>
+        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-500">Revenue Recovered</p>
+          <p className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-400 tabular-nums">{formatCurrency(revenueRecovered)}</p>
         </div>
       </div>
 
@@ -196,56 +192,79 @@ export function CasesWorkspace({ initialCases }: CasesWorkspaceProps) {
           <Table>
             <TableHeader className="bg-muted/40">
               <TableRow>
-                <TableHead className="w-[320px] text-[11px] font-bold uppercase tracking-wider">Case Title & ID</TableHead>
-                <TableHead className="text-[11px] font-bold uppercase tracking-wider">Type</TableHead>
-                <TableHead className="text-[11px] font-bold uppercase tracking-wider">Source</TableHead>
-                <TableHead className="text-[11px] font-bold uppercase tracking-wider">Severity</TableHead>
+                <TableHead className="w-[280px] text-[11px] font-bold uppercase tracking-wider">Case / Payment</TableHead>
+                <TableHead className="text-right text-[11px] font-bold uppercase tracking-wider">Revenue at Risk</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-wider">Failure Reason</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-wider">AI Recommendation</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-wider">Confidence</TableHead>
                 <TableHead className="text-[11px] font-bold uppercase tracking-wider">Status</TableHead>
-                <TableHead className="text-right text-[11px] font-bold uppercase tracking-wider">Amount</TableHead>
-                <TableHead className="text-right text-[11px] font-bold uppercase tracking-wider">Created</TableHead>
+                <TableHead className="text-right text-[11px] font-bold uppercase tracking-wider">Updated</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {initialCases.map((caseRecord) => (
-                <TableRow key={caseRecord.id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell className="font-medium">
-                    <Link
-                      href={`/cases/${caseRecord.id}`}
-                      className="flex items-center gap-2 group"
-                    >
-                      <span className="font-mono text-xs font-semibold text-muted-foreground group-hover:text-foreground">
-                        #{caseRecord.caseNumber}
+              {initialCases.map((caseRecord) => {
+                const { label: aiRecLabel, confidence: aiRecConfidence } = getAiRecommendation(caseRecord.recommendation);
+                return (
+                  <TableRow key={caseRecord.id} className="hover:bg-muted/30 transition-colors cursor-pointer group">
+                    <TableCell className="font-medium relative">
+                      <Link
+                        href={`/cases/${caseRecord.id}`}
+                        className="absolute inset-0"
+                        aria-label={`View case ${caseRecord.caseNumber}`}
+                      />
+                      <div className="flex flex-col gap-1 z-10 relative pointer-events-none">
+                        <span className="text-sm font-semibold group-hover:text-primary transition-colors line-clamp-1">
+                          {caseRecord.title}
+                        </span>
+                        <span className="font-mono text-xs font-medium text-muted-foreground">
+                          #{caseRecord.caseNumber}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-bold text-sm tabular-nums">
+                      {formatCurrency(
+                        caseRecord.amountAtRisk ?? caseRecord.payment?.amount,
+                        caseRecord.currency ?? caseRecord.payment?.currency ?? "INR",
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {formatFailureReason(caseRecord.type)}
                       </span>
-                      <span className="text-sm font-semibold group-hover:text-primary group-hover:underline transition-colors line-clamp-1">
-                        {caseRecord.title}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm font-medium">
+                        {aiRecLabel}
                       </span>
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono text-[10px] uppercase font-medium">
-                      {caseRecord.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground font-mono">
-                    {caseRecord.source ?? "RECONCILIATION"}
-                  </TableCell>
-                  <TableCell>{getSeverityBadge(caseRecord.severity)}</TableCell>
-                  <TableCell>{getStatusBadge(caseRecord.status)}</TableCell>
-                  <TableCell className="text-right font-mono font-bold text-sm tabular-nums">
-                    {formatCurrency(
-                      caseRecord.amountAtRisk ?? caseRecord.payment?.amount,
-                      caseRecord.currency ?? caseRecord.payment?.currency ?? "INR",
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground" suppressHydrationWarning>
-                    {new Date(caseRecord.createdAt).toLocaleDateString("en-IN", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      {aiRecConfidence !== null ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full ${aiRecConfidence > 0.8 ? 'bg-emerald-500' : aiRecConfidence > 0.5 ? 'bg-amber-500' : 'bg-red-500'}`}
+                              style={{ width: `${Math.round(aiRecConfidence * 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+                            {Math.round(aiRecConfidence * 100)}%
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(caseRecord.status)}</TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground" suppressHydrationWarning>
+                      {new Date(caseRecord.updatedAt || caseRecord.createdAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
