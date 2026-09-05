@@ -1,28 +1,28 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
+  Activity,
   AlertTriangle,
   ArrowRight,
-  CheckCircle2,
+  Bot,
   Clock,
   Database,
   FolderOpen,
   GitCompareArrows,
-  RefreshCw,
+  Search,
+  ShieldAlert,
   ShieldCheck,
-  Sparkles,
   TrendingUp,
-  XCircle,
+  Wallet,
   Zap,
 } from "lucide-react";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
-import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -39,7 +39,7 @@ import { getRecoveryMetrics } from "@/lib/recovery/recovery-service";
 import { listReconciliationRuns } from "@/lib/reconciliation/run-service";
 
 export const metadata: Metadata = {
-  title: "Dashboard",
+  title: "Dashboard | SettleIQ",
 };
 
 export const dynamic = "force-dynamic";
@@ -70,9 +70,10 @@ function formatDate(d: Date | string | null | undefined): string {
 function getStatusBadge(status: string) {
   switch (status.toUpperCase()) {
     case "OPEN":
+    case "ANALYZING":
       return (
         <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold text-[10px] tracking-wide">
-          OPEN
+          {status}
         </Badge>
       );
     case "RECOVERED":
@@ -151,15 +152,8 @@ export default async function DashboardPage() {
     listReconciliationRuns().catch(() => []),
   ]);
 
-  const recentCases = cases.slice(0, 6);
+  const recentCases = cases.slice(0, 8);
   const recoveryRate = metrics?.recoveryRate ?? 0;
-  const isDemo = (metrics?.dataMode ?? "DEMO_SYNTHETIC") === "DEMO_SYNTHETIC";
-
-  // Severity distribution
-  const criticalCount = cases.filter((c) => c.severity?.toUpperCase() === "CRITICAL").length;
-  const highCount = cases.filter((c) => c.severity?.toUpperCase() === "HIGH").length;
-  const mediumCount = cases.filter((c) => c.severity?.toUpperCase() === "MEDIUM").length;
-  const lowCount = cases.filter((c) => c.severity?.toUpperCase() === "LOW").length;
 
   // Case status distribution
   const openCount = cases.filter((c) => ["OPEN", "ANALYZING", "ACTION_PROPOSED", "EXECUTING"].includes(c.status)).length;
@@ -173,34 +167,23 @@ export default async function DashboardPage() {
 
   return (
     <DashboardShell
-      title="Dashboard"
-      description="Revenue recovery and reconciliation control center"
+      title="Revenue Recovery Command Center"
+      description="Monitor at-risk revenue, AI recovery actions, payment health, and operational outcomes."
     >
-      <div className="flex flex-col gap-6">
-
-        {/* ── Hero Control Bar ── */}
+      <div className="flex flex-col gap-8 pb-8">
+      
+        {/* ── SECTION 1: HEADER ── */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border/80 bg-gradient-to-r from-card via-card/90 to-card/70 p-5 shadow-sm">
           <div className="flex items-center gap-3.5">
             <div className="flex size-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-inner">
-              <ShieldCheck className="size-6" />
+              <Zap className="size-6" />
             </div>
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-lg font-bold tracking-tight text-foreground">SettleIQ Control Center</h2>
-                <Badge
-                  variant="outline"
-                  className={
-                    isDemo
-                      ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold text-[11px]"
-                      : "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold text-[11px]"
-                  }
-                >
-                  <span className={`size-1.5 rounded-full ${isDemo ? "bg-amber-500" : "bg-emerald-500"} mr-1.5`} />
-                  {isDemo ? "Demo / Synthetic Dataset" : "Live Razorpay Feed"}
-                </Badge>
+                <h2 className="text-lg font-bold tracking-tight text-foreground">Revenue Recovery Command Center</h2>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Autonomous Razorpay reconciliation engine &amp; bounded AI recovery agent
+                Monitor at-risk revenue, AI recovery actions, payment health, and operational outcomes.
               </p>
             </div>
           </div>
@@ -216,409 +199,301 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* ── 4 Primary KPI Cards ── */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
-          {/* Revenue at Risk */}
-          <Card className="relative overflow-hidden border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-card to-card shadow-sm transition-all hover:border-amber-500/50 hover:shadow-md">
+        {/* ── SECTION 2: Primary KPI Hero ── */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="relative overflow-hidden border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-card shadow-md transition-all hover:border-amber-500/50 hover:shadow-lg group">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Revenue at Risk</CardTitle>
-              <div className="flex size-9 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Revenue at Risk</CardTitle>
+              <div className="flex size-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500 group-hover:bg-amber-500/20 transition-colors">
                 <AlertTriangle className="size-4" />
               </div>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent>
               <p className="text-3xl font-extrabold tracking-tight text-foreground tabular-nums">
                 {formatCurrency(metrics?.totalRevenueAtRiskPaise ?? 0)}
               </p>
-              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-amber-500" />
-                <span className="font-semibold text-foreground">{openCount}</span> active anomaly cases
-              </p>
             </CardContent>
           </Card>
 
-          {/* Total Recovered */}
-          <Card className="relative overflow-hidden border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 via-card to-card shadow-sm transition-all hover:border-emerald-500/50 hover:shadow-md">
+          <Card className="relative overflow-hidden border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-card shadow-md transition-all hover:border-emerald-500/50 hover:shadow-lg group">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Total Recovered</CardTitle>
-              <div className="flex size-9 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                <TrendingUp className="size-4" />
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Total Recovered</CardTitle>
+              <div className="flex size-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500/20 transition-colors">
+                <Wallet className="size-4" />
               </div>
             </CardHeader>
-            <CardContent className="space-y-2.5">
+            <CardContent>
               <p className="text-3xl font-extrabold tracking-tight text-foreground tabular-nums">
                 {formatCurrency(metrics?.totalRecoveredPaise ?? 0)}
               </p>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Recovery rate</span>
-                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{recoveryRate}%</span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, Math.max(0, recoveryRate))}%` }}
-                  />
-                </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="relative overflow-hidden border border-border bg-card shadow-sm hover:shadow-md transition-all">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Recovery Rate</CardTitle>
+              <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <TrendingUp className="size-4" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-extrabold tracking-tight text-foreground tabular-nums">
+                {recoveryRate}%
+              </p>
+              <div className="mt-2 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(0, recoveryRate))}%` }}
+                />
               </div>
             </CardContent>
           </Card>
-
-          {/* Case Operations */}
-          <Card className="relative overflow-hidden border border-indigo-500/25 bg-gradient-to-br from-indigo-500/10 via-card to-card shadow-sm transition-all hover:border-indigo-500/50 hover:shadow-md">
+          
+          <Card className="relative overflow-hidden border border-border bg-card shadow-sm hover:shadow-md transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Case Operations</CardTitle>
-              <div className="flex size-9 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
-                <FolderOpen className="size-4" />
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Open / Pending Cases</CardTitle>
+              <div className="flex size-9 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                <Activity className="size-4" />
               </div>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent>
               <p className="text-3xl font-extrabold tracking-tight text-foreground tabular-nums">
-                {cases.length}
-              </p>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
-                  <CheckCircle2 className="size-3" />
-                  {recoveredCount} resolved
-                </span>
-                {pendingApprovalCount > 0 && (
-                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
-                    <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
-                    {pendingApprovalCount} pending
-                  </span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Execution Engine */}
-          <Card className="relative overflow-hidden border border-purple-500/25 bg-gradient-to-br from-purple-500/10 via-card to-card shadow-sm transition-all hover:border-purple-500/50 hover:shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Execution Engine</CardTitle>
-              <div className="flex size-9 items-center justify-center rounded-xl border border-purple-500/30 bg-purple-500/15 text-purple-600 dark:text-purple-400">
-                <Zap className="size-4" />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-3xl font-extrabold tracking-tight text-foreground tabular-nums">
-                {metrics?.recoveryAttempts ?? 0}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{metrics?.successfulRecoveries ?? 0}</span>{" "}
-                successes ·{" "}
-                <span className="font-semibold tabular-nums">{metrics?.failedRecoveries ?? 0}</span>{" "}
-                failures
+                {openCount + pendingApprovalCount}
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* ── Two-column middle section: Reconciliation Health + Operational Status ── */}
-        <div className="grid gap-4 lg:grid-cols-2">
-
-          {/* Reconciliation Health */}
-          <Card className="border border-border/80 shadow-sm overflow-hidden">
-            <CardHeader className="border-b bg-muted/20 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <GitCompareArrows className="size-4 text-primary" />
-                    Reconciliation Health
-                  </CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
-                    {latestRun
-                      ? `Latest run · ${latestRun.datasetLabel}`
-                      : "No reconciliation runs yet"}
-                  </CardDescription>
+        {/* ── SECTION 3: Recovery Pipeline ── */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold tracking-tight">Recovery Pipeline</h3>
+          <Card className="border border-border/60 shadow-sm p-6 bg-card/40 overflow-hidden relative">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+              {/* Connector Line */}
+              <div className="hidden md:block absolute top-[40%] left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-amber-500/20 via-indigo-500/20 to-emerald-500/20 -z-10"></div>
+              
+              <div className="flex flex-col items-center bg-card p-4 rounded-xl shadow-sm border border-border/50 min-w-[160px] relative overflow-hidden group">
+                <div className="absolute inset-0 bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors" />
+                <div className="size-12 rounded-full border-2 border-amber-500/30 bg-card flex items-center justify-center text-amber-500 mb-3 z-10 shadow-sm">
+                  <ShieldAlert className="size-5" />
                 </div>
-                {latestRun && (
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                  >
-                    {latestRun.status}
-                  </Badge>
-                )}
+                <p className="text-base font-bold tabular-nums z-10">{formatCurrency(metrics?.totalRevenueAtRiskPaise ?? 0)}</p>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-1.5 z-10">Revenue At Risk</p>
+              </div>
+
+              <div className="hidden md:flex text-muted-foreground/40"><ArrowRight className="size-5" /></div>
+
+              <div className="flex flex-col items-center bg-card p-4 rounded-xl shadow-sm border border-border/50 min-w-[160px] relative overflow-hidden group">
+                <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors" />
+                <div className="size-12 rounded-full border-2 border-primary/30 bg-card flex items-center justify-center text-primary mb-3 z-10 shadow-sm">
+                  <Search className="size-5" />
+                </div>
+                <p className="text-base font-bold tabular-nums z-10">{cases.length} Cases</p>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-1.5 z-10">Cases Detected</p>
+              </div>
+
+              <div className="hidden md:flex text-muted-foreground/40"><ArrowRight className="size-5" /></div>
+
+              <div className="flex flex-col items-center bg-card p-4 rounded-xl shadow-sm border border-border/50 min-w-[160px] relative overflow-hidden group">
+                <div className="absolute inset-0 bg-indigo-500/5 group-hover:bg-indigo-500/10 transition-colors" />
+                <div className="size-12 rounded-full border-2 border-indigo-500/30 bg-card flex items-center justify-center text-indigo-500 mb-3 z-10 shadow-sm">
+                  <Bot className="size-5" />
+                </div>
+                <p className="text-base font-bold tabular-nums z-10">{metrics?.recoveryAttempts ?? 0} Actions</p>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-1.5 z-10">AI Investigated</p>
+              </div>
+
+              <div className="hidden md:flex text-muted-foreground/40"><ArrowRight className="size-5" /></div>
+
+              <div className="flex flex-col items-center bg-card p-4 rounded-xl shadow-sm border border-border/50 min-w-[160px] relative overflow-hidden group">
+                <div className="absolute inset-0 bg-emerald-500/5 group-hover:bg-emerald-500/10 transition-colors" />
+                <div className="size-12 rounded-full border-2 border-emerald-500/30 bg-card flex items-center justify-center text-emerald-500 mb-3 z-10 shadow-sm">
+                  <Wallet className="size-5" />
+                </div>
+                <p className="text-base font-bold tabular-nums z-10">{formatCurrency(metrics?.totalRecoveredPaise ?? 0)}</p>
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold tracking-wider mt-1.5 z-10">Revenue Recovered</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* ── SECTION 4: AI Recovery Operations ── */}
+          <Card className="flex flex-col border border-border/80 shadow-sm overflow-hidden">
+            <CardHeader className="border-b bg-muted/20 pb-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Bot className="size-4 text-primary" />
+                AI Recovery Operations
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
+                  <p className="text-3xl font-extrabold">{openCount}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Cases Detected</p>
+                </div>
+                <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
+                  <p className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">{pendingApprovalCount}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400/80 mt-1">Pending Human Approvals</p>
+                </div>
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                  <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">{recoveredCount}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400/80 mt-1">Recovered Cases</p>
+                </div>
+                <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                  <p className="text-3xl font-extrabold text-red-600 dark:text-red-400">{failedCount}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400/80 mt-1">Failed Cases</p>
+                </div>
+                <div className="col-span-2 mt-2 p-4 rounded-xl border border-border/50 bg-muted/10 flex justify-between items-center text-sm">
+                   <div className="flex flex-col">
+                     <span className="text-[11px] font-bold uppercase text-muted-foreground tracking-wide">Execution Success</span>
+                     <span className="font-extrabold text-lg text-emerald-600 dark:text-emerald-400">{metrics?.successfulRecoveries ?? 0}</span>
+                   </div>
+                   <div className="h-8 w-px bg-border"></div>
+                   <div className="flex flex-col items-end">
+                     <span className="text-[11px] font-bold uppercase text-muted-foreground tracking-wide">Execution Failure</span>
+                     <span className="font-extrabold text-lg text-red-600 dark:text-red-400">{metrics?.failedRecoveries ?? 0}</span>
+                   </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="p-4 border-t bg-muted/10">
+              <Button variant="ghost" className="w-full text-sm font-semibold justify-between group text-primary hover:text-primary/90" render={<Link href="/cases" />}>
+                View Recovery Cases
+                <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* ── SECTION 5: Reconciliation Health ── */}
+          <Card className="flex flex-col border border-border/80 shadow-sm overflow-hidden">
+            <CardHeader className="border-b bg-muted/20 pb-4">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Database className="size-4 text-primary" />
+                  Payment Data Health
+                </CardTitle>
+                {latestRun && <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider">{latestRun.status}</Badge>}
               </div>
             </CardHeader>
-            <CardContent className="p-6">
-              {!latestRun ? (
-                <div className="flex flex-col items-center gap-3 py-6 text-center">
-                  <Database className="size-8 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">No reconciliation data</p>
-                  <Button size="sm" variant="outline" render={<Link href="/reconciliation" />}>
-                    <GitCompareArrows className="size-3.5 mr-1.5" />
-                    Run Reconciliation
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-5">
-                  {/* Big match rate */}
-                  <div className="flex items-end gap-2">
-                    <span className="text-4xl font-extrabold tabular-nums text-foreground">
-                      {matchRate?.toFixed(1)}
-                      <span className="text-2xl text-muted-foreground">%</span>
-                    </span>
-                    <span className="mb-1 text-sm text-muted-foreground font-medium">match rate</span>
+            <CardContent className="flex-1 p-6">
+              {latestRun ? (
+                <div className="space-y-8">
+                  <div className="flex items-baseline gap-2.5">
+                    <span className="text-5xl font-extrabold tabular-nums tracking-tight text-foreground">{matchRate?.toFixed(1)}<span className="text-3xl text-muted-foreground">%</span></span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Match Rate</span>
                   </div>
-
-                  {/* Stacked bar */}
-                  <div className="space-y-1.5">
-                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted/50">
+                  
+                  <div className="space-y-3">
+                    <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted shadow-inner">
                       {latestRun.totalRecords > 0 && (
                         <>
-                          <div
-                            className="h-full bg-emerald-500 transition-all"
-                            style={{ width: `${(latestRun.matchedRecords / latestRun.totalRecords) * 100}%` }}
-                          />
-                          <div
-                            className="h-full bg-amber-400 transition-all"
-                            style={{ width: `${(latestRun.mismatchedRecords / latestRun.totalRecords) * 100}%` }}
-                          />
-                          <div
-                            className="h-full bg-red-400 transition-all"
-                            style={{ width: `${(latestRun.unmatchedRecords / latestRun.totalRecords) * 100}%` }}
-                          />
+                          <div className="bg-emerald-500" style={{ width: `${(latestRun.matchedRecords / latestRun.totalRecords) * 100}%` }} />
+                          <div className="bg-amber-400" style={{ width: `${(latestRun.mismatchedRecords / latestRun.totalRecords) * 100}%` }} />
+                          <div className="bg-red-500" style={{ width: `${(latestRun.unmatchedRecords / latestRun.totalRecords) * 100}%` }} />
                         </>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <span className="size-2 rounded-full bg-emerald-500" />
-                        {latestRun.matchedRecords} matched
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="size-2 rounded-full bg-amber-400" />
-                        {latestRun.mismatchedRecords} mismatched
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="size-2 rounded-full bg-red-400" />
-                        {latestRun.unmatchedRecords} unmatched
-                      </span>
+                    <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider">
+                      <span className="text-emerald-600 dark:text-emerald-400">{latestRun.matchedRecords} Matched</span>
+                      <span className="text-amber-600 dark:text-amber-400">{latestRun.mismatchedRecords} Mismatched</span>
+                      <span className="text-red-600 dark:text-red-400">{latestRun.unmatchedRecords} Unmatched</span>
                     </div>
                   </div>
-
-                  {/* Stats row */}
-                  <div className="grid grid-cols-3 gap-3 pt-1">
-                    <div className="rounded-lg border bg-muted/20 p-3 text-center">
-                      <p className="text-lg font-bold tabular-nums">{latestRun.totalRecords}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Total</p>
+                  
+                  <div className="flex justify-between items-center p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                      <AlertTriangle className="size-4" />
+                      <span className="font-bold text-[11px] uppercase tracking-wider">Exceptions Detected</span>
                     </div>
-                    <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-center">
-                      <p className="text-lg font-bold tabular-nums text-amber-600 dark:text-amber-400">{latestRun.exceptionCount}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Exceptions</p>
-                    </div>
-                    <div className="rounded-lg border bg-muted/20 p-3 text-center">
-                      <p className="text-lg font-bold tabular-nums text-muted-foreground">
-                        {latestRun.processingTimeMs < 1000
-                          ? `${latestRun.processingTimeMs}ms`
-                          : `${(latestRun.processingTimeMs / 1000).toFixed(1)}s`}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Duration</p>
-                    </div>
+                    <span className="font-extrabold text-xl text-amber-600 dark:text-amber-400 tabular-nums">{latestRun.exceptionCount}</span>
                   </div>
-
-                  {/* Timestamp + link */}
-                  <div className="flex items-center justify-between pt-1">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1.5" suppressHydrationWarning>
-                      <Clock className="size-3" />
-                      Last run {formatDate(latestRun.startedAt)}
-                    </p>
-                    <Button variant="ghost" size="sm" className="text-xs gap-1 text-primary h-auto py-0" render={<Link href="/reconciliation" />}>
-                      Details <ArrowRight className="size-3" />
-                    </Button>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                    <Clock className="size-3.5" />
+                    Latest run: {formatDate(latestRun.startedAt)}
                   </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-8">
+                  <Database className="size-10 mb-4 opacity-20" />
+                  <p className="text-sm font-medium">No reconciliation data</p>
                 </div>
               )}
             </CardContent>
-          </Card>
-
-          {/* Operational Status */}
-          <Card className="border border-border/80 shadow-sm overflow-hidden">
-            <CardHeader className="border-b bg-muted/20 px-6 py-4">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Sparkles className="size-4 text-primary" />
-                Operational Status
-              </CardTitle>
-              <CardDescription className="text-xs mt-0.5">
-                Case pipeline and recovery agent performance
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-
-              {/* Case status grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3.5 space-y-1">
-                  <p className="text-2xl font-extrabold tabular-nums text-foreground">{openCount}</p>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">Open Cases</p>
-                </div>
-                <div className={`rounded-lg border p-3.5 space-y-1 ${pendingApprovalCount > 0 ? "border-indigo-500/20 bg-indigo-500/5" : "border-border bg-muted/20"}`}>
-                  <p className={`text-2xl font-extrabold tabular-nums ${pendingApprovalCount > 0 ? "text-indigo-600 dark:text-indigo-400" : "text-foreground"}`}>
-                    {pendingApprovalCount}
-                  </p>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                    {pendingApprovalCount > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
-                        <span className="size-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                        Awaiting Approval
-                      </span>
-                    ) : "Pending Approval"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3.5 space-y-1">
-                  <p className="text-2xl font-extrabold tabular-nums text-emerald-600 dark:text-emerald-400">{recoveredCount}</p>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Recovered</p>
-                </div>
-                <div className={`rounded-lg border p-3.5 space-y-1 ${failedCount > 0 ? "border-red-500/20 bg-red-500/5" : "border-border bg-muted/20"}`}>
-                  <p className={`text-2xl font-extrabold tabular-nums ${failedCount > 0 ? "text-red-600 dark:text-red-400" : "text-foreground"}`}>{failedCount}</p>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Failed</p>
-                </div>
-              </div>
-
-              {/* Severity strip */}
-              {cases.length > 0 && (
-                <div className="border-t pt-4 space-y-2">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Risk Distribution</p>
-                  <div className="flex gap-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[11px] font-bold text-red-600 dark:text-red-400">
-                      <span className="size-1.5 rounded-full bg-red-500 animate-pulse" />
-                      {criticalCount} Critical
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                      <span className="size-1.5 rounded-full bg-amber-500" />
-                      {highCount} High
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2.5 py-1 text-[11px] font-bold text-yellow-600 dark:text-yellow-400">
-                      <span className="size-1.5 rounded-full bg-yellow-500" />
-                      {mediumCount} Medium
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
-                      <span className="size-1.5 rounded-full bg-muted-foreground/40" />
-                      {lowCount} Low
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* View all link */}
-              <div className="flex justify-end pt-1">
-                <Button variant="ghost" size="sm" className="text-xs gap-1 text-primary h-auto py-0" render={<Link href="/cases" />}>
-                  View all cases <ArrowRight className="size-3" />
-                </Button>
-              </div>
-            </CardContent>
+            <CardFooter className="p-4 border-t bg-muted/10">
+              <Button variant="ghost" className="w-full text-sm font-semibold justify-between group text-primary hover:text-primary/90" render={<Link href="/reconciliation" />}>
+                View Reconciliation
+                <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </CardFooter>
           </Card>
         </div>
 
-        {/* ── Recent Cases Table ── */}
-        {recentCases.length === 0 ? (
-          <EmptyState
-            icon={GitCompareArrows}
-            title="No operational data yet"
-            description="Run reconciliation to seed the synthetic buildathon dataset, generate findings, and create bounded recovery cases with audit trails."
-            action={
-              <Button size="sm" render={<Link href="/reconciliation" />}>
-                <GitCompareArrows className="size-4 mr-1.5" />
-                Run Reconciliation
-              </Button>
-            }
-          />
-        ) : (
+        {/* ── SECTION 6: Recent Recovery Cases ── */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold tracking-tight">Recent Recovery Cases</h3>
           <Card className="shadow-sm border border-border/80 overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between gap-4 border-b bg-muted/20 px-6 py-4">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <CardTitle className="text-base font-bold tracking-tight">Recent Case Workflows</CardTitle>
-                  <Badge variant="outline" className="text-[10px] font-mono font-medium">
-                    {recentCases.length} items
-                  </Badge>
-                </div>
-                <CardDescription className="text-xs mt-0.5">
-                  Active reconciliation findings and recovery actions requiring operational resolution
-                </CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" className="text-xs font-semibold gap-1 text-primary hover:text-primary/80" render={<Link href="/cases" />}>
-                View All
-                <ArrowRight className="size-3.5" />
-              </Button>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader className="bg-muted/40">
-                  <TableRow>
-                    <TableHead className="w-[340px] text-[11px] font-bold uppercase tracking-wider">Case Title &amp; ID</TableHead>
-                    <TableHead className="text-[11px] font-bold uppercase tracking-wider">Status</TableHead>
-                    <TableHead className="text-[11px] font-bold uppercase tracking-wider">Severity</TableHead>
-                    <TableHead className="text-[11px] font-bold uppercase tracking-wider hidden md:table-cell">Type</TableHead>
-                    <TableHead className="text-right text-[11px] font-bold uppercase tracking-wider">Amount at Risk</TableHead>
+            <Table>
+              <TableHeader className="bg-muted/40">
+                <TableRow>
+                  <TableHead className="text-[11px] font-bold uppercase tracking-wider py-4">Payment / Case ID</TableHead>
+                  <TableHead className="text-[11px] font-bold uppercase tracking-wider">Failure Reason</TableHead>
+                  <TableHead className="text-[11px] font-bold uppercase tracking-wider">Recommended Action</TableHead>
+                  <TableHead className="text-[11px] font-bold uppercase tracking-wider">Severity</TableHead>
+                  <TableHead className="text-[11px] font-bold uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="text-right text-[11px] font-bold uppercase tracking-wider">Revenue at Risk</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentCases.map((caseRecord) => (
+                  <TableRow 
+                    key={caseRecord.id} 
+                    className={`transition-colors group ${caseRecord.status === 'RECOVERED' ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : 'hover:bg-muted/30'}`}
+                  >
+                    <TableCell className="font-medium py-3">
+                      <Link href={`/cases/${caseRecord.id}`} className="flex flex-col gap-1">
+                        <span className="text-sm font-semibold group-hover:text-primary transition-colors">
+                          {caseRecord.payment?.razorpayPaymentId ?? caseRecord.paymentId ?? "Multiple Payments"}
+                        </span>
+                        <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                          #{caseRecord.caseNumber}
+                        </span>
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-sm font-medium max-w-[200px] truncate" title={caseRecord.title}>
+                      {caseRecord.title}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                       {caseRecord.requiresHumanApproval ? (
+                         <span className="inline-flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-medium text-xs">
+                           <ShieldCheck className="size-3.5" />
+                           Manual Review
+                         </span>
+                       ) : (
+                         <span className="inline-flex items-center gap-1.5 text-primary font-medium text-xs">
+                           <Bot className="size-3.5" />
+                           AI Resolution
+                         </span>
+                       )}
+                    </TableCell>
+                    <TableCell>{getSeverityBadge(caseRecord.severity)}</TableCell>
+                    <TableCell>{getStatusBadge(caseRecord.status)}</TableCell>
+                    <TableCell className={`text-right font-mono font-bold text-sm tabular-nums ${caseRecord.status === 'RECOVERED' ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
+                      {formatCurrency(caseRecord.amountAtRisk ?? caseRecord.payment?.amount ?? 0)}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentCases.map((caseRecord) => (
-                    <TableRow key={caseRecord.id} className="hover:bg-muted/30 transition-colors group">
-                      <TableCell className="font-medium">
-                        <Link href={`/cases/${caseRecord.id}`} className="flex items-start gap-2.5">
-                          <span className="font-mono text-xs font-medium text-muted-foreground group-hover:text-foreground mt-0.5">
-                            #{caseRecord.caseNumber}
-                          </span>
-                          <span className="text-sm font-semibold group-hover:text-primary transition-colors line-clamp-1">
-                            {caseRecord.title}
-                          </span>
-                        </Link>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(caseRecord.status)}</TableCell>
-                      <TableCell>{getSeverityBadge(caseRecord.severity)}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <Badge variant="outline" className="font-mono text-[10px] uppercase font-semibold">
-                          {caseRecord.type ?? caseRecord.source ?? "—"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-bold text-sm tabular-nums text-foreground">
-                        {formatCurrency(caseRecord.amountAtRisk ?? caseRecord.payment?.amount ?? 0)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ── Run History Quick Strip ── */}
-        {runs.length > 1 && (
-          <Card className="border border-border/80 shadow-sm">
-            <CardHeader className="border-b bg-muted/20 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <RefreshCw className="size-4 text-muted-foreground" />
-                  Reconciliation History
-                </CardTitle>
-                <Button variant="ghost" size="sm" className="text-xs gap-1 text-primary h-auto py-0" render={<Link href="/reconciliation" />}>
-                  Full view <ArrowRight className="size-3" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="flex flex-col gap-2">
-                {runs.slice(0, 4).map((run, idx) => (
-                  <div key={run.id} className="flex items-center gap-4 rounded-lg border border-border/60 px-4 py-2.5 text-xs">
-                    <span className={`size-2 rounded-full ${idx === 0 ? "bg-primary" : "bg-muted-foreground/30"}`} />
-                    <span className="font-semibold text-foreground flex-1 truncate">{run.datasetLabel}</span>
-                    <span className="font-bold tabular-nums text-foreground">{Number(run.matchRate).toFixed(1)}%</span>
-                    <span className="text-muted-foreground tabular-nums hidden sm:block" suppressHydrationWarning>
-                      {formatDate(run.startedAt)}
-                    </span>
-                    <Badge variant="outline" className="text-[10px] uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                      {run.status}
-                    </Badge>
-                  </div>
                 ))}
-              </div>
-            </CardContent>
+                {recentCases.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                      No recovery cases found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </Card>
-        )}
-
+        </div>
       </div>
     </DashboardShell>
   );
