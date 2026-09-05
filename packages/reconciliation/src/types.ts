@@ -27,6 +27,10 @@ export interface NormalizedPayment {
   currency: string;
   status: PaymentStatus;
   capturedAt: string | null;
+  method?: string;
+  failureCode?: string | null;
+  failureDescription?: string | null;
+  retryCount?: number;
 }
 
 export interface NormalizedSettlement {

@@ -233,7 +233,7 @@ export class RazorpayClient {
   async getSettlementById(settlementId: string): Promise<RazorpaySettlement> {
     return this.request<RazorpaySettlement>(
       "GET",
-      `/settlements/${settlementId}`,
+      `/settlements${settlementId}`,
     );
   }
 
@@ -260,7 +260,8 @@ export class RazorpayClient {
           method,
           headers,
           signal: controller.signal,
-        });
+          cache: "no-store",
+        } as any);
 
         if (response.ok) {
           return (await response.json()) as T;
