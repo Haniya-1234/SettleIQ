@@ -1,107 +1,121 @@
 # SettleIQ
 
-**Agentic Payment Operations & Reconciliation for Razorpay Merchants**
+### AI-Powered Payment Operations & Revenue Recovery for Razorpay Merchants
 
-SettleIQ is a production-oriented fintech platform that helps merchants reconcile Razorpay payments, investigate anomalies, and resolve payment operations cases — with full AI agent audit trails and human-in-the-loop approvals.
+SettleIQ is a production-oriented fintech platform that helps Razorpay merchants **detect revenue at risk, investigate payment and reconciliation anomalies, determine the safest recovery action, and execute bounded recovery workflows with human approval and complete auditability.**
 
-Built for the Razorpay Buildathon.
+Built for the **Razorpay Buildathon — AI Revenue Recovery Track**.
 
 ---
 
-## Architecture
+## 🚀 What SettleIQ Does
 
-```
-apps/web          → Next.js 16 app (UI + API routes)
-packages/db       → Prisma schema + PostgreSQL client
-packages/shared   → Shared types and Zod schemas
-packages/agents   → Agent orchestrator and specialist agents
-packages/razorpay → Typed Razorpay API client wrapper
-packages/reconciliation → Deterministic matching rules engine
-```
+Payment failures and reconciliation discrepancies can leave revenue stuck, delayed, or at risk.
 
-## Prerequisites
+SettleIQ turns these operational problems into an actionable workflow:
 
-- **Node.js** ≥ 20
-- **pnpm** ≥ 10
-- **PostgreSQL** database (local, [Neon](https://neon.tech), or Supabase)
+**Detect → Investigate → Diagnose → Decide → Approve → Recover → Audit**
 
-## Quick Start
+Instead of simply reporting that a payment failed, SettleIQ answers:
 
-### 1. Clone and install
+- **What happened?**
+- **Why did it happen?**
+- **How much revenue is at risk?**
+- **What should be done next?**
+- **Is automated recovery safe?**
+- **Does the action require human approval?**
+- **What happened after the action was executed?**
 
-```bash
-pnpm install
-```
+Every important decision is recorded in an auditable agent timeline.
 
-### 2. Configure environment
+---
 
-```bash
-cp .env.example .env
-```
+## ✨ Key Capabilities
 
-Edit `.env` and set at minimum:
+### 🔎 Revenue-at-Risk Detection
 
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` for local dev |
+Identifies payment failures and reconciliation anomalies that may represent recoverable revenue.
 
-Other variables (Clerk, Razorpay, OpenAI) are required in later phases but not needed to run the UI locally.
+### 🧠 AI-Assisted Investigation
 
-### 3. Set up the database
+Investigates cases using available transaction and payment evidence to determine likely failure causes and recovery strategies.
 
-```bash
-pnpm db:generate
-pnpm db:push
-```
+### ⚖️ Policy-Based Guardrails
 
-### 4. Start the development server
+Recovery actions are evaluated against configurable safety rules before execution.
 
-```bash
-pnpm dev
-```
+Actions can be:
 
-Open [http://localhost:3000](http://localhost:3000).
+- Approved automatically
+- Sent for human approval
+- Blocked when policy conditions are not satisfied
 
-## Available Scripts
+### 👤 Human-in-the-Loop Recovery
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start all apps in development mode |
-| `pnpm build` | Build all packages and apps |
-| `pnpm lint` | Run ESLint across the monorepo |
-| `pnpm typecheck` | Run TypeScript checks |
-| `pnpm db:generate` | Generate Prisma client |
-| `pnpm db:push` | Push schema to database |
-| `pnpm db:studio` | Open Prisma Studio |
+High-impact recovery actions require explicit human approval before execution.
 
-## Project Status
+This prevents an automated system from taking potentially unsafe financial actions.
 
-| Phase | Status | Description |
-|-------|--------|-------------|
-| **Phase 0** | ✅ Complete | Monorepo, schema, UI foundation |
-| Phase 1 | Pending | Razorpay API integration & data sync |
-| Phase 2 | Pending | Reconciliation engine & case management |
-| Phase 3 | Pending | AI agents & explainability |
-| Phase 4 | Pending | Resolution & approval flows |
-| Phase 5 | Pending | Demo hardening & deployment |
+### 💰 Recovery Execution
 
-## Database Schema
+Once approved, SettleIQ executes a bounded recovery workflow and records:
 
-Core entities:
+- Recovery status
+- Recovered amount
+- Action performed
+- External reference
+- Final resolution
 
-- `organizations` — merchant accounts
-- `payments`, `orders`, `settlements` — synced Razorpay data
-- `cases` — reconciliation anomalies
-- `agent_runs`, `agent_steps`, `tool_invocations` — AI audit trail
+### 📊 Reconciliation
 
-## Security Notes
+Matches Razorpay orders, payments, and settlements and surfaces exceptions requiring investigation.
 
-- Never commit `.env` files
-- Razorpay secrets are stored encrypted (Phase 1)
-- Webhook signatures are verified before processing (Phase 1)
-- High-impact actions require explicit human approval (Phase 4)
+### 🧾 Complete Audit Trail
 
-## License
+Agent activity is captured across the investigation and recovery lifecycle, including:
 
-Private — Razorpay Buildathon submission.
+- Agent runs
+- Agent steps
+- Tool invocations
+- Policy decisions
+- Human approvals
+- Execution results
+- Final resolution
+
+---
+
+# 🏗️ Architecture
+
+SettleIQ is implemented as a **pnpm monorepo** with separate packages for the web application, database layer, shared types, agents, Razorpay integration, and reconciliation engine.
+
+```text
+SettleIQ
+│
+├── apps/
+│   └── web/
+│       ├── Next.js application
+│       ├── Dashboard UI
+│       ├── Case management
+│       └── API routes
+│
+├── packages/
+│   ├── db/
+│   │   └── Prisma + PostgreSQL
+│   │
+│   ├── shared/
+│   │   └── Shared TypeScript types + Zod schemas
+│   │
+│   ├── agents/
+│   │   ├── Agent orchestration
+│   │   ├── Recovery policy engine
+│   │   └── Recovery execution
+│   │
+│   ├── razorpay/
+│   │   └── Typed Razorpay API client
+│   │
+│   └── reconciliation/
+│       ├── Matching engine
+│       ├── Synthetic dataset generation
+│       └── Reconciliation logic
+│
+└── PostgreSQL
