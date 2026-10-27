@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Bot,
   Clock,
+  CreditCard,
   Database,
   FolderOpen,
   GitCompareArrows,
@@ -188,6 +189,10 @@ export default async function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-2.5">
+            <Button variant="outline" size="sm" render={<Link href="/payments" />}>
+              <CreditCard className="size-4 mr-1.5 text-muted-foreground" />
+              Payment Monitor
+            </Button>
             <Button variant="outline" size="sm" render={<Link href="/cases" />}>
               <FolderOpen className="size-4 mr-1.5 text-muted-foreground" />
               View Cases

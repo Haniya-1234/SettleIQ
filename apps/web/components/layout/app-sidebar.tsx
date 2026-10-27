@@ -1,8 +1,9 @@
 import Link from "next/link";
 import {
-  LayoutDashboard,
-  GitCompareArrows,
+  CreditCard,
   FolderOpen,
+  GitCompareArrows,
+  LayoutDashboard,
   Settings,
   Shield,
 } from "lucide-react";
@@ -26,6 +27,11 @@ const navItems = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Payment Monitor",
+    href: "/payments",
+    icon: CreditCard,
   },
   {
     title: "Reconciliation",
